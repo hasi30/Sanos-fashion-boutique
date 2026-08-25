@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanos Fashion Boutique — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f7f1ee;color:#542334}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.topbar{background:#542334;color:#fff;padding:18px 30px;display:flex;justify-content:space-between;align-items:center}
+.topbar h1{margin:0;font-size:22px}
+.topbar button{background:#d7aa52;border:0;padding:10px 18px;border-radius:8px;color:#fff;font-weight:700}
+.container{max-width:1200px;margin:30px auto;padding:0 20px}
+.card{background:#fff;border-radius:16px;padding:25px;margin-bottom:25px;box-shadow:0 8px 30px rgba(0,0,0,.07)}
+.login{max-width:470px;margin:70px auto;padding:32px;background:#fff;border-radius:18px;box-shadow:0 10px 35px rgba(0,0,0,.1)}
+.login h1{text-align:center;margin-top:0}
+label{display:block;font-weight:700;margin-bottom:7px}
+input,textarea,select{width:100%;border:1px solid #ddd;border-radius:8px;padding:12px;background:#fff;color:#333}
+textarea{min-height:100px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.full{grid-column:1/-1}
+.primary{background:#742d45;color:#fff;border:0;padding:13px 22px;border-radius:8px;font-weight:700}
+.secondary{background:#eee;color:#542334;border:0;padding:13px 22px;border-radius:8px;font-weight:700}
+.danger{background:#a83232;color:#fff;border:0;padding:9px 13px;border-radius:7px}
+.edit{background:#d7aa52;color:#fff;border:0;padding:9px 13px;border-radius:7px}
+.actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.status{margin-top:15px;padding:12px;border-radius:8px;display:none;white-space:pre-wrap}
+.success{display:block;background:#e5f6e9;color:#17652b}
+.error{display:block;background:#fde7e7;color:#8b2020}
+.preview{width:130px;height:160px;object-fit:cover;border-radius:10px;border:1px solid #ddd;margin-top:10px;display:none}
+.product-table{width:100%;border-collapse:collapse}
+.product-table th,.product-table td{padding:12px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+.product-table img{width:65px;height:80px;object-fit:cover;border-radius:8px}
+.table-wrap{overflow-x:auto}
+.bulk-help{background:#faf5ee;padding:15px;border-radius:10px;margin-bottom:15px;line-height:1.6}
+code{background:#eee;padding:2px 5px;border-radius:4px}
+.remember{display:flex;align-items:center;gap:8px;margin-top:14px;font-weight:400}
+.remember input{width:auto}
+.note{font-size:13px;color:#777;line-height:1.5}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.topbar{padding:15px}.container{padding:0 12px}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login">
+  <h1>Sanos Admin</h1>
+  <p style="text-align:center">Login to manage products</p>
+
+  <label>Email</label>
+  <input id="loginEmail" type="email" autocomplete="username" placeholder="Admin email">
+
+  <br><br>
+
+  <label>Password</label>
+  <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+
+  <label class="remember">
+    <input id="rememberPassword" type="checkbox">
+    Remember my email & password on this device
+  </label>
+
+  <p class="note">
+    This option stores the credentials in this browser's local storage. Use it only on a private/trusted device.
+  </p>
+
+  <div class="actions">
+    <button class="primary" style="width:100%" id="loginBtn">Login</button>
+  </div>
+
+  <div id="loginStatus" class="status"></div>
+</div>
+
+<div id="adminApp" class="hidden">
+  <div class="topbar">
+    <h1>Sanos Fashion — Admin</h1>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <div class="container">
+
+    <div class="card">
+      <h2 id="formTitle">Add New Product</h2>
+
+      <form id="productForm">
+        <div class="form-grid">
+
+          <div>
+            <label>Product Name *</label>
+            <input id="productName" required placeholder="Pink Floral Top">
+          </div>
+
+          <div>
+            <label>Price *</label>
+            <input id="productPrice" type="number" min="0" step="0.01" required placeholder="699">
+          </div>
+
+          <div>
+            <label>Category *</label>
+            <select id="productCategory" required>
+              <option value="">Select category</option>
+              <option value="tops">Tops</option>
+              <option value="dresses">Dresses</option>
+              <option value="kurtis">Kurtis</option>
+              <option value="sarees">Sarees</option>
+              <option value="bottoms">Bottoms</option>
+              <option value="sets">Sets</option>
+              <option value="accessories">Accessories</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Stock *</label>
+            <input id="productStock" type="number" min="0" required placeholder="10">
+          </div>
+
+          <div class="full">
+            <label>Description</label>
+            <textarea id="productDescription" placeholder="Beautiful floral top..."></textarea>
+          </div>
+
+          <div>
+            <label>Sizes</label>
+            <input id="productSizes" placeholder="S,M,L,XL">
+          </div>
+
+          <div>
+            <label>Product Image *</label>
+            <input id="productImage" type="file" accept="image/*">
+            <img id="imagePreview" class="preview" alt="Preview">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary" id="saveProductBtn">Add Product</button>
+          <button type="button" class="secondary hidden" id="cancelEditBtn">Cancel Edit</button>
+        </div>
+        <div id="productStatus" class="status"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Bulk Product Upload</h2>
+      <div class="bulk-help">
+        <strong>CSV columns:</strong><br>
+        <code>name,price,category,description,sizes,stock,image</code>
+        <br><br>
+        Example:
+        <br>
+        <code>Pink Floral Top,699,tops,Floral design,"S,M,L,XL",10,pinkfloral.jpeg</code>
+        <br><br>
+        Select the CSV and all matching image files. The system uploads the images,
+        creates their Supabase public URLs, and inserts the products automatically.
+      </div>
+
+      <label>CSV File</label>
+      <input id="csvFile" type="file" accept=".csv,text/csv">
+
+      <br><br>
+
+      <label>Product Images</label>
+      <input id="bulkImages" type="file" accept="image/*" multiple>
+
+      <div class="actions">
+        <button class="primary" id="bulkUploadBtn">Upload Products</button>
+      </div>
+
+      <div id="bulkStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap">
+        <h2>Products</h2>
+        <button class="secondary" id="refreshProductsBtn">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="product-table">
+          <thead>
+            <tr>
+              <th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* =========================
+   SUPABASE CONFIG
+========================= */
+const SUPABASE_URL = 'https://mgjvrhhnaacixsdgbufs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_TC7jR-Z3vm3uUWFmhRKlOw_4xUPOLH2';
+const BUCKET = 'sanosfashionboutique';
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
+
+let editingProductId = null;
+let products = [];
+
+const loginScreen = document.getElementById('loginScreen');
+const adminApp = document.getElementById('adminApp');
+const loginStatus = document.getElementById('loginStatus');
+const productStatus = document.getElementById('productStatus');
+const bulkStatus = document.getElementById('bulkStatus');
+
+function showStatus(element, message, type) {
+  element.textContent = message;
+  element.className = 'status ' + type;
+}
+
+function getSavedCredentials() {
+  try {
+    const saved = localStorage.getItem('sanos_admin_credentials');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCredentials(email, password) {
+  localStorage.setItem(
+    'sanos_admin_credentials',
+    JSON.stringify({ email, password })
+  );
+}
+
+function clearSavedCredentials() {
+  localStorage.removeItem('sanos_admin_credentials');
+}
+
+function loadSavedCredentials() {
+  const saved = getSavedCredentials();
+  if (!saved) return;
+
+  document.getElementById('loginEmail').value = saved.email || '';
+  document.getElementById('loginPassword').value = saved.password || '';
+  document.getElementById('rememberPassword').checked = true;
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const remember = document.getElementById('rememberPassword').checked;
+
+  if (!email || !password) {
+    showStatus(loginStatus, 'Enter email and password.', 'error');
+    return;
+  }
+
+  const button = document.getElementById('loginBtn');
+  button.disabled = true;
+  button.textContent = 'Logging in...';
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    showStatus(loginStatus, error.message, 'error');
+    button.disabled = false;
+    button.textContent = 'Login';
+    return;
+  }
+
+  if (remember) {
+    saveCredentials(email, password);
+  } else {
+    clearSavedCredentials();
+  }
+
+  showAdmin();
+
+  button.disabled = false;
+  button.textContent = 'Login';
+}
+
+document.getElementById('loginBtn').addEventListener('click', login);
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+async function checkSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) showAdmin();
+  else showLogin();
+}
+
+function showLogin() {
+  loginScreen.classList.remove('hidden');
+  adminApp.classList.add('hidden');
+  loadSavedCredentials();
+}
+
+async function showAdmin() {
+  loginScreen.classList.add('hidden');
+  adminApp.classList.remove('hidden');
+  await loadProducts();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  showLogin();
+});
+
+document.getElementById('productImage').addEventListener('change', function() {
+  const file = this.files[0];
+  const preview = document.getElementById('imagePreview');
+
+  if (!file) {
+    preview.style.display = 'none';
+    return;
+  }
+
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = 'block';
+});
+
+function createFileName(file) {
+  const extension = file.name.includes('.')
+    ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+    : '';
+
+  const base = file.name
+    .replace(/\.[^/.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]/g, '-');
+
+  return Date.now() + '-' + base + extension;
+}
+
+async function uploadImage(file) {
+  if (!file) throw new Error('Please select a product image.');
+
+  const fileName = createFileName(file);
+
+  const { error } = await supabaseClient.storage
+    .from(BUCKET)
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type
+    });
+
+  if (error) throw error;
+
+  const { data } = supabaseClient.storage
+    .from(BUCKET)
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
+document.getElementById('productForm').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const name = document.getElementById('productName').value.trim();
+  const price = Number(document.getElementById('productPrice').value);
+  const category = document.getElementById('productCategory').value;
+  const description = document.getElementById('productDescription').value.trim();
+  const sizes = document.getElementById('productSizes').value.trim();
+  const stock = Number(document.getElementById('productStock').value);
+  const imageFile = document.getElementById('productImage').files[0];
+
+  if (!name || !category) {
+    showStatus(productStatus, 'Name and category are required.', 'error');
+    return;
+  }
+
+  const button = document.getElementById('saveProductBtn');
+  button.disabled = true;
+  button.textContent = editingProductId ? 'Updating...' : 'Saving...';
+
+  try {
+    let imageUrl = null;
+
+    if (editingProductId) {
+      const oldProduct = products.find(
+        p => String(p.id) === String(editingProductId)
+      );
+
+      imageUrl = oldProduct?.image_url || null;
+
+      if (imageFile) imageUrl = await uploadImage(imageFile);
+
+      const { error } = await supabaseClient
+        .from('products')
+        .update({
+          name,
+          price,
+          category,
+          description,
+          sizes,
+          stock,
+          image_url: imageUrl
+        })
+        .eq('id', editingProductId);
+
+      if (error) throw error;
+
+      showStatus(productStatus, 'Product updated successfully!', 'success');
+    } else {
+      if (!imageFile) throw new Error('Please select a product image.');
+
+      imageUrl = await uploadImage(imageFile);
+
+      const { error } = await supabaseClient
+        .from('products')
+        .insert({
+          name,
+          price,
+          category,
+          description,
+          sizes,
+          stock,
+          image_url: imageUrl
+        });
+
+      if (error) throw error;
+
+      showStatus(productStatus, 'Product added successfully!', 'success');
+    }
+
+    resetProductForm();
+    await loadProducts();
+
+  } catch (error) {
+    console.error(error);
+    showStatus(productStatus, error.message || 'Something went wrong.', 'error');
+  }
+
+  button.disabled = false;
+  button.textContent = editingProductId ? 'Update Product' : 'Add Product';
+});
+
+function resetProductForm() {
+  editingProductId = null;
+  document.getElementById('productForm').reset();
+  document.getElementById('formTitle').textContent = 'Add New Product';
+  document.getElementById('saveProductBtn').textContent = 'Add Product';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+  document.getElementById('imagePreview').style.display = 'none';
+}
+
+document.getElementById('cancelEditBtn').addEventListener('click', resetProductForm);
+
+async function loadProducts() {
+  const { data, error } = await supabaseClient
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    showStatus(productStatus, 'Could not load products: ' + error.message, 'error');
+    return;
+  }
+
+  products = data || [];
+  renderProducts();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  })[character]);
+}
+
+function renderProducts() {
+  const tbody = document.getElementById('productsTableBody');
+
+  if (!products.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px">No products found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = products.map(product => `
+    <tr>
+      <td>
+        ${product.image_url
+          ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">`
+          : 'No image'}
+      </td>
+      <td>${escapeHtml(product.name)}</td>
+      <td>${escapeHtml(product.category || '')}</td>
+      <td>₹${Number(product.price || 0).toLocaleString('en-IN')}</td>
+      <td>${Number(product.stock || 0)}</td>
+      <td>
+        <div class="actions">
+          <button class="edit" onclick="editProduct('${String(product.id).replace(/'/g, "\\'")}')">Edit</button>
+          <button class="danger" onclick="deleteProduct('${String(product.id).replace(/'/g, "\\'")}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.editProduct = function(id) {
+  const product = products.find(p => String(p.id) === String(id));
+  if (!product) return;
+
+  editingProductId = product.id;
+
+  document.getElementById('productName').value = product.name || '';
+  document.getElementById('productPrice').value = product.price || '';
+  document.getElementById('productCategory').value = product.category || '';
+  document.getElementById('productDescription').value = product.description || '';
+  document.getElementById('productSizes').value = product.sizes || '';
+  document.getElementById('productStock').value = product.stock || 0;
+
+  document.getElementById('formTitle').textContent = 'Edit Product';
+  document.getElementById('saveProductBtn').textContent = 'Update Product';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+  const preview = document.getElementById('imagePreview');
+  if (product.image_url) {
+    preview.src = product.image_url;
+    preview.style.display = 'block';
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.deleteProduct = async function(id) {
+  const product = products.find(p => String(p.id) === String(id));
+  if (!product) return;
+
+  if (!confirm(`Delete "${product.name}"?`)) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    await loadProducts();
+    showStatus(productStatus, 'Product deleted.', 'success');
+
+  } catch (error) {
+    console.error(error);
+    showStatus(productStatus, error.message, 'error');
+  }
+};
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let value = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"' && insideQuotes && next === '"') {
+      value += '"';
+      i++;
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === ',' && !insideQuotes) {
+      row.push(value);
+      value = '';
+    } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+      if (char === '\r' && next === '\n') i++;
+      row.push(value);
+      value = '';
+
+      if (row.some(x => x.trim() !== '')) rows.push(row);
+      row = [];
+    } else {
+      value += char;
+    }
+  }
+
+  if (value || row.length) {
+    row.push(value);
+    if (row.some(x => x.trim() !== '')) rows.push(row);
+  }
+
+  if (!rows.length) return [];
+
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+
+  return rows.slice(1).map(row => {
+    const object = {};
+    headers.forEach((header, index) => {
+      object[header] = (row[index] || '').trim();
+    });
+    return object;
+  });
+}
+
+document.getElementById('bulkUploadBtn').addEventListener('click', async () => {
+  const csvFile = document.getElementById('csvFile').files[0];
+  const imageFiles = Array.from(document.getElementById('bulkImages').files);
+
+  if (!csvFile) {
+    showStatus(bulkStatus, 'Please select a CSV file.', 'error');
+    return;
+  }
+
+  if (!imageFiles.length) {
+    showStatus(bulkStatus, 'Please select your product images.', 'error');
+    return;
+  }
+
+  const button = document.getElementById('bulkUploadBtn');
+  button.disabled = true;
+  button.textContent = 'Uploading...';
+
+  try {
+    const rows = parseCSV(await csvFile.text());
+
+    if (!rows.length) throw new Error('CSV file is empty.');
+
+    const imageMap = new Map();
+    imageFiles.forEach(file => imageMap.set(file.name.toLowerCase(), file));
+
+    let successCount = 0;
+    let failedCount = 0;
+    const errors = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+
+      try {
+        const imageName = String(row.image || '').trim();
+        if (!imageName) throw new Error('Missing image filename');
+
+        const imageFile = imageMap.get(imageName.toLowerCase());
+        if (!imageFile) throw new Error(`Image not selected: ${imageName}`);
+
+        showStatus(
+          bulkStatus,
+          `Uploading ${i + 1} of ${rows.length}: ${row.name || imageName}`,
+          'success'
+        );
+
+        const imageUrl = await uploadImage(imageFile);
+
+        const { error } = await supabaseClient
+          .from('products')
+          .insert({
+            name: row.name || 'Untitled Product',
+            price: Number(row.price || 0),
+            category: row.category || 'uncategorized',
+            description: row.description || '',
+            sizes: row.sizes || '',
+            stock: Number(row.stock || 0),
+            image_url: imageUrl
+          });
+
+        if (error) throw error;
+
+        successCount++;
+      } catch (error) {
+        failedCount++;
+        errors.push(`Row ${i + 2}: ${error.message}`);
+      }
+    }
+
+    let message = `Finished! ${successCount} products uploaded.`;
+    if (failedCount) message += ` ${failedCount} failed. Check the browser console for details.`;
+
+    if (errors.length) console.error('Bulk upload errors:', errors);
+
+    showStatus(bulkStatus, message, failedCount ? 'error' : 'success');
+    await loadProducts();
+
+  } catch (error) {
+    console.error(error);
+    showStatus(bulkStatus, error.message, 'error');
+  }
+
+  button.disabled = false;
+  button.textContent = 'Upload Products';
+});
+
+document.getElementById('refreshProductsBtn').addEventListener('click', loadProducts);
+
+checkSession();
+</script>
+</body>
+</html>
